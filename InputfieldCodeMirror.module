@@ -1,0 +1,144 @@
+<?php
+
+/**
+ * An Inputfield for handling XHTML "textarea" form inputs
+ *
+ */
+class InputfieldCodeMirror extends InputfieldTextarea {
+
+	const CMVersion = '2.0';
+
+	protected $defaults = array(
+		);
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'CodeMirror',
+			'version' => 100,
+			'summary' => 'Syntax highlighted code editor',
+			'permanent' => false,
+			);
+	}
+
+	public function init() { 
+		parent::init();
+	}
+
+	private function addMode($mode, $useCss = true){
+		$this->config->scripts->add(
+			$this->config->urls->InputfieldCodeMirror .
+			"codemirror-" . self::CMVersion . "/modes/$mode/$mode.js"
+		);
+		if ($useCss)
+			$this->config->styles->add(
+				$this->config->urls->InputfieldCodeMirror .
+				"codemirror-" . self::CMVersion . "/modes/$mode/$mode.css"
+			);
+	}
+
+	public function ___render() {
+
+		$this->config->scripts->add(
+			$this->config->urls->InputfieldCodeMirror .
+			"codemirror-" . self::CMVersion . "/cm/codemirror.js"
+		);
+		$this->config->styles->add(
+			$this->config->urls->InputfieldCodeMirror .
+			"codemirror-" . self::CMVersion . "/cm/codemirror.css"
+		);
+
+		/*
+		 * This will be PHP mode, when I'll make it PHP-ready
+		 * self::addMode('xml');
+		self::addMode('javascript');
+		self::addMode('css');
+		self::addMode('clike');
+		self::addMode('php', false);*/
+		self::addMode('xml');
+		self::addMode('javascript');
+		self::addMode('css');
+
+		$thisID = $this->attr('id');
+
+/*		$config = $this->defaults;
+		foreach($config as $key => $unused) $config[$key] = $this->get($key);
+		$this->config->js($this->attr('id'), $config);
+
+		$config = $this->config->js($this->className());
+		if(is_null($config)) $config = array();
+		// 'elements' is a tinymce config option, we're using the same terminology for consistency
+		if(!isset($config['elements'])) $config['elements'] = array();
+		$config['elements'][] = $this->attr('id');
+		$config['url'] = $this->config->urls->InputfieldTinyMCE;
+		$this->config->js($this->className(), $config);
+*/
+		$startJS = <<<startJS
+<script>
+	$(document).ready(function() {
+		CodeMirror.fromTextArea(document.getElementById("{$thisID}"), {
+			lineNumbers: true,
+			matchBrackets: true,
+			mode: "text/html",
+			indentUnit: 2,
+			indentWithTabs: false,
+			enterMode: "keep",
+			tabMode: "shift"
+		});
+	});
+</script>
+startJS;
+
+		return parent::___render().$startJS;
+	}
+
+	public function setAttribute($key, $value) {
+		//if(isset($_POST['body_html'])) die("<pre>" . $_POST['body_html'] . "</pre>");
+		if($key != 'value') return parent::setAttribute($key, $value); 
+
+		/*
+
+		// remove empty tags
+		$value = preg_replace('{<([a-z0-9]+)>\s*(&nbsp;|<br />)*\s*</\\1>}i', '', $value); 
+
+		// replace fake bulleted lists
+		$value = preg_replace('{<br />\s*[-*]\s*}m', '<br />', $value); 
+
+		// fix breaks to be paragraphs
+		$value = str_replace(array('<br /> <br />', '<br /><br />'), '</p><p>', $value); 
+
+		// fix paragraphs that start with a break 
+		$value = str_replace('<p><br />', '<p>', $value) ;
+
+		// remove arbitrary and incorrect bulleted lists
+		$value = preg_replace('{\s*&bull;\s*}', ' ', $value); 
+
+		// fix those darn &nbsp; tags
+		$value = str_replace('&nbsp;', ' ', $value); 
+		*/
+	
+		return parent::setAttribute($key, $value); 	
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields();
+
+		$wrapper = $this->modules->get('InputfieldFieldset'); 
+		$wrapper->label = 'Ace Code Editor Configuration';
+		$wrapper->description = 
+			'Following fields edit Ace Code Editor Behavior. ' .
+			'There is also currently nothing to set. Booyah!';
+		$wrapper->collapsed = Inputfield::collapsedYes; 
+
+		foreach($this->defaults as $key => $unused) {
+			$field = $this->modules->get('InputfieldText'); 
+			$field->attr('name', $key); 
+			$field->attr('maxlength', 4096); 
+			$field->attr('value', $this->get($key)); 
+			$wrapper->append($field);
+		}
+
+		$inputfields->append($wrapper); 
+
+		return $inputfields; 
+	}
+}
